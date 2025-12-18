@@ -1,98 +1,156 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { ChangePasswordModal } from '@/components/ChangePasswordModal';
+import { Keypad } from '@/components/Keypad';
+import { PasswordDisplay } from '@/components/PasswordDisplay';
+import { StatusIndicator } from '@/components/StatusIndicator';
+import { useSmartLock } from '@/hooks/useSmartLock';
+import { Ionicons } from '@react-native-vector-icons/ionicons';
+import React, { useState } from 'react';
+import { Alert, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
 
-export default function HomeScreen() {
+export default function Home() {
+  const { 
+    password, status, isConnecting, 
+    handleKeyPress, changePassword 
+  } = useSmartLock();
+
+  const [modalVisible, setModalVisible] = useState(false);
+
+  const handleOpenSettings = () => {
+
+    const statusAllowed = 'OPEN';
+
+    if (status === statusAllowed) {
+      setModalVisible(true);
+    } else {
+      Alert.alert(
+        "Acesso Negado", 
+        "Por segurança, você só pode alterar a senha quando a porta estiver DESTRANCADA."
+      );
+    }
+  };
+
+  const isSettingsEnabled = status === 'OPEN';
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor="#f4f6f8" />
+      
+      <View style={styles.container}>
+        
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.title}>Smart Lock Pro</Text>
+            <Text style={styles.subtitle}>Sistema IoT Seguro</Text>
+          </View>
+          
+          <TouchableOpacity 
+            style={[styles.settingsBtn, { opacity: isSettingsEnabled ? 1 : 0.5 }]} 
+            onPress={handleOpenSettings}
+            activeOpacity={isSettingsEnabled ? 0.6 : 1}
+          >
+            <Ionicons name="settings-sharp" size={24} color="#2c3e50" />
+          </TouchableOpacity>
+        </View>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+        <View style={styles.centerArea}>
+          <View style={styles.statusWrapper}>
+             <StatusIndicator status={status} loading={isConnecting} />
+          </View>
+          
+          <PasswordDisplay value={password} />
+        </View>
+
+        <View style={styles.bottomArea}>
+          <Keypad onPress={handleKeyPress} />
+          
+          <TouchableOpacity 
+            style={styles.lockButtonMain} 
+            onPress={() => handleKeyPress('CLOSE')}
+          >
+             <Text style={styles.lockButtonText}>TRANCAR PORTA</Text>
+          </TouchableOpacity>
+        </View>
+
+        <ChangePasswordModal 
+          visible={modalVisible}
+          onClose={() => setModalVisible(false)}
+          onSubmit={changePassword}
+        />
+
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#f4f6f8',
+  },
+  container: {
+    flex: 1,
+    padding: 24, 
+    justifyContent: 'space-between', 
+  },
+  header: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 20,
+  },
+  title: {
+    fontSize: 32, 
+    fontWeight: '800',
+    color: '#2c3e50',
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#7f8c8d',
+    marginTop: 4,
+  },
+  settingsBtn: {
+    padding: 12,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    shadowColor: "#bdc3c7",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  centerArea: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
+    gap: 20, 
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  statusWrapper: {
+    alignItems: 'center', 
+    justifyContent: 'center',
+    width: '100%',
+    marginBottom: 10,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  bottomArea: {
+    gap: 20,
   },
+  lockButtonMain: {
+    width: '100%',
+    paddingVertical: 18,
+    backgroundColor: '#34495e',
+    borderRadius: 20,
+    alignItems: 'center',
+    shadowColor: "#2c3e50",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 6,
+  },
+  lockButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+  }
 });
